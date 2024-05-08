@@ -3,7 +3,7 @@ class_name DialogueParser extends RefCounted
 
 # Prase the given dialogue script String in to 
 # list of "possibly" nested [DialogueCommand]s.
-func parse(dialogue_script: String):
+static func parse(dialogue_script: String):
 	var rootParse: Array[DialogueCommand] = []
 	rootParse.push_back(
 		DialogueCommand.new(0, 0, DialogueCommand.CommandType.ROOT))
@@ -14,16 +14,15 @@ func parse(dialogue_script: String):
 	#print ("content parseD:")
 	#print (rootParse)
 	return rootParse
-	
 
 # satement parser.
-func _parse_statement(i: int, raw: String, parseProgress: Array[DialogueCommand]):
+static func _parse_statement(i: int, raw: String, parseProgress: Array[DialogueCommand]):
 	var conditional_operator = "$if"
 	var else_operator = "$else"
 	
 	if i >= raw.length():
 		return i
-
+	
 	var currentLine = raw.count("\n", 0, max(i, 1)) + 1
 	var inLinePos = i - raw.substr(0, i).rfind("\n") - 1
 	if _peek_and_match("\\", i, raw):
@@ -31,7 +30,7 @@ func _parse_statement(i: int, raw: String, parseProgress: Array[DialogueCommand]
 		if i + 1 >= raw.length():
 			# out of bound, next letter is not availalbe.
 			return i + 1
-
+	
 		_add_letters_progress(
 			raw[i] + raw[i+1],
 			parseProgress[0].children,
@@ -149,13 +148,13 @@ func _parse_statement(i: int, raw: String, parseProgress: Array[DialogueCommand]
 				# '{' found
 				nextPosition = bracketMatch.get_end()
 				var end_position = _get_position_from_index(nextPosition, raw)
-
+				
 				var bracket = DialogueCommand.new(
 					end_position["line"],
 					end_position["pos"],
 					DialogueCommand.CommandType.BRACKET
 				)
-
+				
 				elseChildren.push_back(bracket)
 				parseProgress[0].children.push_back(result)
 				parseProgress.push_front(bracket)
@@ -204,11 +203,22 @@ func _parse_statement(i: int, raw: String, parseProgress: Array[DialogueCommand]
 			currentLine, inLinePos, DialogueCommand.CommandType.PAGE_BREAK)
 		parseProgress[0].children.push_back(result)
 		return i + 3
+	elif _peek_and_match("#", i, raw):
+		var tagTerm = RegEx.new()
+		tagTerm.compile(" ")
+		var tag:String = _collect_characters(i+1,raw,tagTerm)
+		var command: DialogueCommand = DialogueCommand.new(
+			currentLine, 
+			inLinePos, 
+			DialogueCommand.CommandType.TAG,
+			[tag])
+		parseProgress[0].children.push_back(command)
+		return i + 1 + tag.length()
 	
 	var variableInjectRegex = RegEx.new()
 	variableInjectRegex.compile("\\${\\S+?}")
 	var varInjectMatch = variableInjectRegex.search(raw, i)
-
+	
 	if varInjectMatch && varInjectMatch.get_start() == i:
 		_add_letters_progress(
 			varInjectMatch.get_string(),
@@ -224,11 +234,11 @@ func _parse_statement(i: int, raw: String, parseProgress: Array[DialogueCommand]
 		return i + 1
 
 # Parse for children / value components of a PROMPT command.
-func _parse_prompt_command(i: int, raw: String, promptCommand: DialogueCommand):
+static func _parse_prompt_command(i: int, raw: String, promptCommand: DialogueCommand):
 	# collect as DISPLAY_TEXT the prompt statement and terminate prompt parsing on bracket or GOTO.
 	if i >= raw.length():
 		return i
-
+	
 	var character_pos = _get_position_from_index(i, raw)
 	if _peek_and_match("\\", i, raw):
 		# escape character "\" detected, store following letter as plain text.
@@ -271,20 +281,20 @@ func _parse_prompt_command(i: int, raw: String, promptCommand: DialogueCommand):
 		return _parse_prompt_command(i + 1, raw, promptCommand)
 	
 # Collect values in raw String starting from 'starting' index until 'terminating' character is found.
-func _collect_characters(starting: int, raw: String, terminating: RegEx):
+static func _collect_characters(starting: int, raw: String, terminating: RegEx):
 	var result = ""
 	var match = terminating.search(raw, starting)
 	if match:
 		return raw.substr(starting, match.get_start() - starting)
 	return raw.substr(starting)
 
-func _is_previous_parse_type(type: DialogueCommand.CommandType, parseProgress: Array[DialogueCommand]):
+static func _is_previous_parse_type(type: DialogueCommand.CommandType, parseProgress: Array[DialogueCommand]):
 	if parseProgress.is_empty():
 		return false
 		
 	return parseProgress[-1].type == type
 
-func _add_letters_progress(letter: String, parseProgress: Array, currentLine: int, currentPos: int, type: DialogueCommand.CommandType):
+static func _add_letters_progress(letter: String, parseProgress: Array, currentLine: int, currentPos: int, type: DialogueCommand.CommandType):
 	if _is_previous_parse_type(type, parseProgress):
 		# merge to previous "letters" type parse
 		parseProgress[-1].values[0] += letter
@@ -299,16 +309,16 @@ func _add_letters_progress(letter: String, parseProgress: Array, currentLine: in
 			[letter])
 		parseProgress.push_back(result)
 
-func _peek_and_match(find: String, start: int, raw: String) -> bool:
+static func _peek_and_match(find: String, start: int, raw: String) -> bool:
 	if start < 0 || start > raw.length():
 		return false
-
+	
 	return raw.substr(start, find.length()) == find
 
-func _is_bracket_start(i: int, raw: String):
+static func _is_bracket_start(i: int, raw: String):
 	return _peek_and_match("{", i, raw) && !_peek_and_match("$", i-1, raw)
 
-func _get_position_from_index(i: int, raw: String):
+static func _get_position_from_index(i: int, raw: String):
 	var lineNumber = raw.count("\n", 0, max(i, 1)) + 1
 	var characterNumber = i - raw.substr(0, i).rfind("\n") - 1
 	return {

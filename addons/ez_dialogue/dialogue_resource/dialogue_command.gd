@@ -22,6 +22,7 @@ enum CommandType {
 	SIGNAL, #11
 	ELSE, #12
 	ELIF, #13
+	TAG, #14
 }
 
 func _init(_line: int= 0,

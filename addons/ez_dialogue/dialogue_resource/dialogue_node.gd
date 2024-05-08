@@ -39,8 +39,8 @@ func clear_parse():
 # Get a list of [DialogueCommand] parsed from the property [member DialogueNode.commands_raw].
 func get_parse() -> Array[DialogueCommand]:
 	if _parsed.is_empty():
-		_parsed = DialogueParser.new().parse(commands_raw)
-
+		_parsed = DialogueParser.parse(commands_raw)
+	
 	return _parsed.duplicate(true)
 
 func get_display_texts():
@@ -58,11 +58,19 @@ func get_destination_nodes():
 		var parseItem = crawlStack.pop_front()
 		for child in parseItem.children:
 			crawlStack.push_front(child)
-			
+		
 		if parseItem.type == DialogueCommand.CommandType.GOTO:
 			var prompt = {}
-		
+			
 			if !parseItem.values.is_empty():
 				result.push_back(parseItem.values[0].strip_edges(true, true))
-
+	
 	return result
+
+func get_tags():
+	var result = []
+	var parsedItems:Array[DialogueCommand] = get_parse()
+	var tags:Array = parsedItems.map(func(p:DialogueCommand):
+		if p.type == DialogueCommand.CommandType.TAG:
+			return p.values[0].strip_edges(true,true)
+	)

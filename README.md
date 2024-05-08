@@ -66,9 +66,9 @@ While I believe most of the post-choice selection logic should be handled in the
 
 ```
 ?> some choice txt {
-    nice choice
-    signal(set,variable,2)
-    -> next node
+	nice choice
+	signal(set,variable,2)
+	-> next node
 }
 ```
 
@@ -101,14 +101,14 @@ You can escape any of the above "special" reserved commands and words with a sin
 For example the following dialogue script:
 ```
 \$if you wish to see me {
-    call me.
+	call me.
 }
 ```
 
 would be displayed as:
 
 "$if you wish to see me {
-    call me.
+	call me.
 }"
 
 instead of being interpretted as `$if` command.
